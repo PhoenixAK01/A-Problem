@@ -1,5 +1,4 @@
 # A*-Problem
-using tkinter
 
 This code visualizes the A* pathfinding algorithm on a 2D grid using **Tkinter** for GUI.  
 It supports **8-directional movement** (up, down, left, right, and diagonals) with different movement costs:
