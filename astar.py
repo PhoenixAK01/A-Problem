@@ -1,102 +1,100 @@
-import tkinter as tk
-import math
-import heapq
-import time
+#include <bits/stdc++.h>
+using namespace std;
 
-def a_star(grid, start, goal):
-    rows, cols = len(grid), len(grid[0])
-    
-    directions = [
-        (-1, 0, 1), (1, 0, 1), (0, -1, 1), (0, 1, 1),
-        (-1, -1, 1.5), (-1, 1, 1.5), (1, -1, 1.5), (1, 1, 1.5)
-    ]
-    
-    def heuristic(a, b):
-        return math.sqrt((a[0]-b[0])**2 + (a[1]-b[1])**2)
-    
-    open_set = []
-    heapq.heappush(open_set, (heuristic(start, goal), 0, start, [start]))
-    visited = set()
-    
-    while open_set:
-        f, g, current, path = heapq.heappop(open_set)
-        
-        if current in visited:
-            continue
-        visited.add(current)
-        
-        if current == goal:
-            return path, g
-        
-        for dx, dy, cost in directions:
-            nx, ny = current[0] + dx, current[1] + dy
-            if 0 <= nx < rows and 0 <= ny < cols and grid[nx][ny] == 1:
-                if (nx, ny) not in visited:
-                    new_g = g + cost
-                    new_f = new_g + heuristic((nx, ny), goal)
-                    heapq.heappush(open_set, (new_f, new_g, (nx, ny), path + [(nx, ny)]))
-    
-    return None, float('inf')
+struct Node {
+    double f, g;
+    pair<int, int> pos;
+    vector<pair<int, int>> path;
 
-def visualize(grid, path, start, goal):
-    rows, cols = len(grid), len(grid[0])
-    cell_size = 60
-    
-    root = tk.Tk()
-    root.title("A* Path Visualization")
+    bool operator>(const Node &other) const {
+        return f > other.f;
+    }
+};
 
-    root.lift()
-    root.attributes('-topmost', True)
-    root.after_idle(root.attributes, '-topmost', False)
-    
-    canvas = tk.Canvas(root, width=cols*cell_size, height=rows*cell_size)
-    canvas.pack()
-    
-    # Draw grid
-    for i in range(rows):
-        for j in range(cols):
-            color = "blue" if grid[i][j] == 0 else "white"
-            canvas.create_rectangle(
-                j*cell_size, i*cell_size, (j+1)*cell_size, (i+1)*cell_size,
-                fill=color, outline="black"
-            )
+double heuristic(pair<int,int> a, pair<int,int> b) {
+    return sqrt(pow(a.first - b.first, 2) + pow(a.second - b.second, 2));
+}
 
-    # Draw start and goal first
-    si, sj = start
-    gi, gj = goal
-    canvas.create_rectangle(sj*cell_size, si*cell_size, (sj+1)*cell_size, (si+1)*cell_size, fill="yellow", outline="black")
-    canvas.create_text(sj*cell_size + cell_size//2, si*cell_size + cell_size//2, text="S", font=("Arial", 16, "bold"))
-    canvas.create_rectangle(gj*cell_size, gi*cell_size, (gj+1)*cell_size, (gi+1)*cell_size, fill="red", outline="black")
-    canvas.create_text(gj*cell_size + cell_size//2, gi*cell_size + cell_size//2, text="E", font=("Arial", 16, "bold"))
+vector<pair<int,int>> a_star(vector<vector<int>> &grid, pair<int,int> start, pair<int,int> goal, double &final_cost) {
+    int rows = grid.size(), cols = grid[0].size();
+    vector<tuple<int,int,double>> directions = {
+        {-1, 0, 1}, {1, 0, 1}, {0, -1, 1}, {0, 1, 1},
+        {-1, -1, 1.5}, {-1, 1, 1.5}, {1, -1, 1.5}, {1, 1, 1.5}
+    };
 
-    # Animate path
-    for (i, j) in path:
-        canvas.create_rectangle(
-            j*cell_size, i*cell_size, (j+1)*cell_size, (i+1)*cell_size,
-            fill="green", outline="black"
-        )
-        root.update()
-        time.sleep(0.1)
-    
-    root.mainloop()
+    priority_queue<Node, vector<Node>, greater<Node>> open_set;
+    set<pair<int,int>> visited;
 
-if __name__ == "__main__":
-    n, m = map(int, input("Enter grid size (rows cols): ").split())
-    grid = []
-    print("Enter grid row by row (0 = river, 1 = land):")
-    for i in range(n):
-        row = list(map(int, input().split()))
-        grid.append(row)
+    Node start_node = {heuristic(start, goal), 0, start, {start}};
+    open_set.push(start_node);
 
-    sx, sy = map(int, input("Enter start position (row col): ").split())
-    gx, gy = map(int, input("Enter goal position (row col): ").split())
-    start, goal = (sx, sy), (gx, gy)
+    while (!open_set.empty()) {
+        Node current = open_set.top();
+        open_set.pop();
 
-    path, cost = a_star(grid, start, goal)
+        if (visited.count(current.pos)) continue;
+        visited.insert(current.pos);
 
-    if path:
-        print("Path found:", path)
-        print("Minimum cost:", cost)
-        visualize(grid, path, start, goal)
-    else:
-        print("No path found.")
+        if (current.pos == goal) {
+            final_cost = current.g;
+            return current.path;
+        }
+
+        for (auto &[dx, dy, cost] : directions) {
+            int nx = current.pos.first + dx;
+            int ny = current.pos.second + dy;
+
+            if (nx >= 0 && nx < rows && ny >= 0 && ny < cols && grid[nx][ny] == 1) {
+                if (!visited.count({nx, ny})) {
+                    double new_g = current.g + cost;
+                    double new_f = new_g + heuristic({nx, ny}, goal);
+
+                    vector<pair<int,int>> new_path = current.path;
+                    new_path.push_back({nx, ny});
+
+                    open_set.push({new_f, new_g, {nx, ny}, new_path});
+                }
+            }
+        }
+    }
+
+    final_cost = INFINITY;
+    return {};
+}
+
+int main() {
+    int n, m;
+    cout << "Enter grid size (rows cols): ";
+    cin >> n >> m;
+
+    vector<vector<int>> grid(n, vector<int>(m));
+    cout << "Enter grid row by row (0 = river, 1 = land):\n";
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            cin >> grid[i][j];
+        }
+    }
+
+    int sx, sy, gx, gy;
+    cout << "Enter start position (row col): ";
+    cin >> sx >> sy;
+    cout << "Enter goal position (row col): ";
+    cin >> gx >> gy;
+
+    pair<int,int> start = {sx, sy}, goal = {gx, gy};
+    double cost;
+    vector<pair<int,int>> path = a_star(grid, start, goal, cost);
+
+    if (!path.empty()) {
+        cout << "Path found: ";
+        for (auto &p : path) {
+            cout << "(" << p.first << "," << p.second << ") ";
+        }
+        cout << "\nMinimum cost: " << cost << "\n";
+    } else {
+        cout << "No path found.\n";
+    }
+
+    return 0;
+}
+
